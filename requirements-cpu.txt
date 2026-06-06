@@ -1,0 +1,44 @@
+# Inference-only subset. No tensorboard / gradio / funasr / faster-whisper / modelscope.
+numpy<2.0
+scipy
+librosa==0.10.2
+numba
+ffmpeg-python
+onnxruntime
+tqdm
+cn2an
+pypinyin
+pyopenjtalk>=0.4.1
+g2p_en
+chardet
+PyYAML
+psutil
+jieba_fast
+jieba
+split-lang
+fast_langdetect>=0.3.1
+wordsegment
+rotary_embedding_torch
+ToJyutping
+g2pk2
+ko_pron
+opencc
+python_mecab_ko; sys_platform != 'win32'
+sentencepiece
+transformers>=4.43,<=4.50
+peft<0.18.0
+soundfile
+huggingface_hub
+einops
+pydantic<=2.10.6
+pytorch-lightning>=2.4
+x_transformers
+torchmetrics<=1.5
+av>=11
+fastapi[standard]>=0.115.2
+nltk
+# inference_webui.py imports these even when we use it programmatically:
+gradio<5
+matplotlib
+# OpenVINO backend for torch.compile() on Intel CPUs (~2-3× speedup expected on P8505).
+openvino>=2024.0

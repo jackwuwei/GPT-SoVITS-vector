@@ -9,6 +9,13 @@ import platform
 from pathlib import Path
 
 import torch
+
+# PyTorch 2.6 flipped torch.load(weights_only) default to True; Lightning ckpts
+# saved by previous runs contain a pathlib.PosixPath that's not in the safe
+# globals allowlist. Re-allow it so resume works.
+import pathlib
+torch.serialization.add_safe_globals([pathlib.PosixPath])
+
 from AR.data.data_module import Text2SemanticDataModule
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from AR.utils.io import load_yaml_config

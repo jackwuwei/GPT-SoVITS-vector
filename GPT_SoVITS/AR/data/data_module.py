@@ -50,25 +50,28 @@ class Text2SemanticDataModule(LightningDataModule):
         )
         batch_size = max(min(batch_size, len(self._train_dataset) // 4), 1)  # 防止不保存
         sampler = DistributedBucketSampler(self._train_dataset, batch_size=batch_size)
+        # MPS-safe: when num_workers=0, prefetch_factor and persistent_workers must drop.
+        nw = self.num_workers
         return DataLoader(
             self._train_dataset,
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=self._train_dataset.collate,
-            num_workers=self.num_workers,
-            persistent_workers=True,
-            prefetch_factor=16,
+            num_workers=nw,
+            persistent_workers=(nw > 0),
+            prefetch_factor=16 if nw > 0 else None,
         )
 
     def val_dataloader(self):
+        nw = max(self.num_workers, 12) if self.num_workers > 0 else 0
         return DataLoader(
             self._dev_dataset,
             batch_size=1,
             shuffle=False,
             collate_fn=self._train_dataset.collate,
-            num_workers=max(self.num_workers, 12),
-            persistent_workers=True,
-            prefetch_factor=16,
+            num_workers=nw,
+            persistent_workers=(nw > 0),
+            prefetch_factor=16 if nw > 0 else None,
         )
 
     # 这个会使用到嘛？

@@ -116,15 +116,17 @@ def run(rank, n_gpus, hps):
         shuffle=True,
     )
     collate_fn = TextAudioSpeakerCollate(version=hps.model.version)
+    # MPS-safe: num_workers=0 avoids the macOS fork-based DataLoader deadlock.
+    _macos_workers = 0 if (os.environ.get("MACOS_SAFE_DATALOADER") or torch.backends.mps.is_available()) else 5
     train_loader = DataLoader(
         train_dataset,
-        num_workers=5,
+        num_workers=_macos_workers,
         shuffle=False,
-        pin_memory=True,
+        pin_memory=False if _macos_workers == 0 else True,
         collate_fn=collate_fn,
         batch_sampler=train_sampler,
-        persistent_workers=True,
-        prefetch_factor=3,
+        persistent_workers=(_macos_workers > 0),
+        prefetch_factor=3 if _macos_workers > 0 else None,
     )
     # if rank == 0:
     #     eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files, hps.data, val=True)

@@ -1,0 +1,55 @@
+# CPU-only inference image for GPT-SoVITS, sized for low-power x86 (e.g. Pentium 8505).
+# Build:  docker compose -f docker-compose.cpu.yaml build
+# Models are mounted at runtime (see docker-compose.cpu.yaml).
+
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple/ \
+    PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn \
+    PYTHONPATH=/app:/app/GPT_SoVITS \
+    HF_ENDPOINT=https://hf-mirror.com \
+    OMP_NUM_THREADS=6 \
+    MKL_NUM_THREADS=6 \
+    TOKENIZERS_PARALLELISM=false
+
+# Switch APT to Tsinghua mirror, then install runtime libs.
+RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g; s|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' \
+        /etc/apt/sources.list.d/debian.sources \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg libsndfile1 build-essential git curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Torch via Tsinghua PyPI (Linux wheel includes bundled CUDA libs ~2GB but downloads fast in CN).
+# CPU-only +cpu variant from download.pytorch.org would be smaller but is US-hosted and unreliable.
+RUN pip install torch==2.11.0 torchaudio==2.11.0 torchcodec==0.11.1
+
+# Inference-only deps (pruned vs upstream requirements.txt).
+COPY requirements-cpu.txt /app/requirements-cpu.txt
+RUN pip install -r /app/requirements-cpu.txt
+
+# Pre-download NLTK English G2P resources (offline at runtime).
+RUN python -c "import nltk; [nltk.download(p, quiet=True) for p in \
+    ('averaged_perceptron_tagger_eng','averaged_perceptron_tagger','cmudict','punkt','punkt_tab')]"
+
+# Pre-create the dir fast-langdetect probes; lid.176.bin is fetched on first call.
+RUN mkdir -p /app/GPT_SoVITS/pretrained_models/fast_langdetect
+
+# Copy code + scripts. Models (pretrained / finetuned) are mounted at runtime.
+COPY GPT_SoVITS /app/GPT_SoVITS
+COPY tools /app/tools
+COPY config.py /app/config.py
+COPY ref_text.txt /app/ref_text.txt
+COPY target_text.txt /app/target_text.txt
+COPY serve.py /app/serve.py
+COPY bench_rtf.py /app/bench_rtf.py
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+EXPOSE 8020
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["serve"]

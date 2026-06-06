@@ -1,0 +1,29 @@
+# Run on the target Pentium 8505 host:
+#   sudo docker compose -f docker-compose.cpu.yaml build
+#   sudo docker compose -f docker-compose.cpu.yaml up -d
+#
+# Pretrained + finetuned weights are bind-mounted (saves ~1.6GB inside the image
+# and keeps checkpoints user-managed instead of baked in).
+
+services:
+  serve:
+    image: vector-tts:cpu
+    container_name: vector-tts
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    environment:
+      OMP_NUM_THREADS: "6"   # P8505 has 1P+4E = 5 cores / 6 threads
+      MKL_NUM_THREADS: "6"
+      TOKENIZERS_PARALLELISM: "false"
+    volumes:
+      - ./GPT_SoVITS/pretrained_models:/app/GPT_SoVITS/pretrained_models   # rw: fast_langdetect downloads its 125MB model on first call
+      - ./SoVITS_weights_v2:/app/SoVITS_weights_v2:ro
+      - ./GPT_weights_v2:/app/GPT_weights_v2:ro
+      - ./output:/app/output
+      - ./samples:/samples:ro            # vector_ref_best.wav lives here
+    ports:
+      - "8020:8020"
+    restart: unless-stopped
+    working_dir: /app
+    command: ["serve"]
