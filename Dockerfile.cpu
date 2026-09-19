@@ -1,32 +1,50 @@
 # CPU-only inference image for GPT-SoVITS, sized for low-power x86 (e.g. Pentium 8505).
+#
+# Two targets:
+#   base    - code + deps only; models are bind-mounted (docker-compose.cpu.yaml, NAS deploy)
+#   bundled - base + pretrained models + fine-tuned Vector weights baked in (Docker Hub image)
+#
 # Build:  docker compose -f docker-compose.cpu.yaml build
-# Models are mounted at runtime (see docker-compose.cpu.yaml).
+# Outside mainland China pass --build-arg USE_CN_MIRROR=false (see .github/workflows/vector-tts-publish.yaml).
 
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim-bookworm AS base
+
+ARG USE_CN_MIRROR=true
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple/
+ARG HF_ENDPOINT=https://hf-mirror.com
+# Empty = take torch from PIP_INDEX_URL (CUDA-bundled on x86_64, ~2GB larger).
+# https://download.pytorch.org/whl/cpu gives the CPU-only wheels.
+ARG TORCH_INDEX_URL=
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple/ \
-    PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn \
+    PIP_INDEX_URL=${PIP_INDEX_URL} \
     PYTHONPATH=/app:/app/GPT_SoVITS \
-    HF_ENDPOINT=https://hf-mirror.com \
+    HF_ENDPOINT=${HF_ENDPOINT} \
     OMP_NUM_THREADS=6 \
     MKL_NUM_THREADS=6 \
     TOKENIZERS_PARALLELISM=false
 
-# Switch APT to Tsinghua mirror, then install runtime libs.
-RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g; s|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' \
-        /etc/apt/sources.list.d/debian.sources \
+# Optionally switch APT to Tsinghua mirror, then install runtime libs.
+RUN if [ "${USE_CN_MIRROR}" = "true" ]; then \
+        sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g; s|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' \
+            /etc/apt/sources.list.d/debian.sources; \
+    fi \
     && apt-get update && apt-get install -y --no-install-recommends \
-        ffmpeg libsndfile1 build-essential git curl \
+        ffmpeg libsndfile1 build-essential cmake git curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Torch via Tsinghua PyPI (Linux wheel includes bundled CUDA libs ~2GB but downloads fast in CN).
-# CPU-only +cpu variant from download.pytorch.org would be smaller but is US-hosted and unreliable.
-RUN pip install torch==2.11.0 torchaudio==2.11.0 torchcodec==0.11.1
+# Default: torch via Tsinghua PyPI (x86_64 wheel bundles CUDA libs ~2GB but downloads fast in CN).
+# The CPU-only variant from download.pytorch.org is smaller but US-hosted and unreliable from CN.
+RUN if [ -n "${TORCH_INDEX_URL}" ]; then \
+        pip install --index-url "${TORCH_INDEX_URL}" torch==2.11.0 torchaudio==2.11.0 \
+        && pip install torchcodec==0.11.1; \
+    else \
+        pip install torch==2.11.0 torchaudio==2.11.0 torchcodec==0.11.1; \
+    fi
 
 # Inference-only deps (pruned vs upstream requirements.txt).
 COPY requirements-cpu.txt /app/requirements-cpu.txt
@@ -47,9 +65,21 @@ COPY ref_text.txt /app/ref_text.txt
 COPY target_text.txt /app/target_text.txt
 COPY serve.py /app/serve.py
 COPY bench_rtf.py /app/bench_rtf.py
-COPY docker/entrypoint.sh /app/entrypoint.sh
+COPY Docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8020
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["serve"]
+
+
+FROM base AS bundled
+
+# GitHub release holding the fine-tuned checkpoints (vectorv2-e30.ckpt, vectorv2_e30_s780.pth).
+ARG VECTOR_WEIGHTS_URL=https://github.com/jackwuwei/GPT-SoVITS-vector/releases/download/vector-weights-v2
+
+COPY Docker/fetch_models.py /tmp/fetch_models.py
+RUN VECTOR_WEIGHTS_URL=${VECTOR_WEIGHTS_URL} python /tmp/fetch_models.py && rm /tmp/fetch_models.py
+
+# Default reference clip (serve.py REF_AUDIO=/samples/vector_001.wav).
+COPY samples/vector_sovits_dataset_v2/clips/vector_001.wav /samples/vector_001.wav

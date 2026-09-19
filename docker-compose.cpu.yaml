@@ -12,6 +12,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.cpu
+      target: base   # models are bind-mounted below; "bundled" bakes them in
     environment:
       OMP_NUM_THREADS: "6"   # P8505 has 1P+4E = 5 cores / 6 threads
       MKL_NUM_THREADS: "6"
