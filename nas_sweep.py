@@ -1,7 +1,7 @@
 """Run inside the NAS vector-tts container (/app). Epoch sweep:
 SoVITS {e20,e25,e30} x GPT {e30,e40,e50} = 9 combos, one sentence each,
 fixed seed + production sampling (top_p=1, temp=1), OpenVINO off, gain off.
-Outputs to /app/output/nas_sweep/ (host: /home/jack/vector-tts/output/nas_sweep).
+Outputs to /app/output/nas_sweep/ (host: <compose dir>/output/nas_sweep).
 """
 import os, sys, time
 from pathlib import Path

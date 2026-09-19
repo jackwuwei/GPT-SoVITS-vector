@@ -8,10 +8,12 @@ Chinese target). If this also fails, something deeper is wrong.
 import os
 import time
 
-MODEL_DIR = "/Users/wuwei/workspace/gpt-sovits/experiments/genie-tts/models/CharacterModels/v2ProPlus/feibi"
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+MODEL_DIR = _ROOT + "/experiments/genie-tts/models/CharacterModels/v2ProPlus/feibi"
 REF_AUDIO = f"{MODEL_DIR}/prompt_wav/zh_vo_Main_Linaxita_2_1_10_26.wav"
 REF_TEXT = "在此之前，请您务必继续享受旅居拉古那的时光。"
-OUT_PATH = "/Users/wuwei/workspace/gpt-sovits/experiments/genie-tts/test_baseline_out.wav"
+OUT_PATH = _ROOT + "/experiments/genie-tts/test_baseline_out.wav"
 TARGET_TEXT = "你好，我是 Vector，今天天气很好，要不要一起出去玩？"
 
 import genie_tts as genie

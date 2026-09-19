@@ -70,9 +70,9 @@ GET  http://escapepod.local/api-sdk/release_behavior_control?serial=<S>
 GPT-SoVITS 期待的格式：`<wav_path>|<spk>|<lang>|<text>`，路径用绝对路径避免 cwd 歧义：
 
 ```
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/orig_01.wav|vector|en|When the sunlight strikes raindrops in the air, they act as a prism and form a rainbow.
+samples/dataset/orig_01.wav|vector|en|When the sunlight strikes raindrops in the air, they act as a prism and form a rainbow.
 ...
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/C6.wav|vector|en|Goodbye!
+samples/dataset/C6.wav|vector|en|Goodbye!
 ```
 
 写入 `gpt-sovits/dataset/vector.list`。
@@ -84,7 +84,7 @@ GPT-SoVITS 期待的格式：`<wav_path>|<spk>|<lang>|<text>`，路径用绝对�
 ### 3.1 Python venv
 
 ```bash
-cd /Users/wuwei/workspace
+cd ~/workspace
 git clone --depth 1 https://github.com/RVC-Boss/GPT-SoVITS.git gpt-sovits
 cd gpt-sovits
 python3.11 -m venv .venv
@@ -297,12 +297,12 @@ torch.serialization.add_safe_globals([pathlib.PosixPath])
 
 ```bash
 . .venv/bin/activate
-export PYTHONPATH=/Users/wuwei/workspace/gpt-sovits:$PYTHONPATH
+export PYTHONPATH=$PWD:$PYTHONPATH
 
 python GPT_SoVITS/inference_cli.py \
   --gpt_model    GPT_weights_v2/vector-e50.ckpt \
   --sovits_model SoVITS_weights_v2/vector_e30_s780.pth \
-  --ref_audio    /Users/wuwei/workspace/gpt-sovits/samples/vector_ref_best.wav \
+  --ref_audio    samples/vector_ref_best.wav \
   --ref_text     ref_text.txt \
   --ref_language 英文 \
   --target_text  target_text.txt \

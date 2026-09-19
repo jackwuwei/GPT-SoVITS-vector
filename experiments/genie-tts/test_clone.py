@@ -9,17 +9,19 @@ import os
 import sys
 import time
 
-REF_AUDIO = "/Users/wuwei/workspace/gpt-sovits/samples/vector_ref_best.wav"
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+REF_AUDIO = _ROOT + "/samples/vector_ref_best.wav"
 REF_TEXT = (
     "These take the shape of a long round arch, with its path high above, "
     "and its two ends apparently beyond the horizon."
 )
-OUT_PATH = "/Users/wuwei/workspace/gpt-sovits/experiments/genie-tts/test_out.wav"
+OUT_PATH = _ROOT + "/experiments/genie-tts/test_out.wav"
 TARGET_TEXT = "你好，我是 Vector，今天天气很好，要不要一起出去玩？"
 CHARACTER = "Feibi"
 LANG = "zh"
 ONNX_MODEL_DIR = (
-    "/Users/wuwei/workspace/gpt-sovits/experiments/genie-tts/models/CharacterModels/v2ProPlus/feibi/tts_models"
+    _ROOT + "/experiments/genie-tts/models/CharacterModels/v2ProPlus/feibi/tts_models"
 )
 
 print("[1/4] importing genie_tts (first import auto-downloads ~391MB on first run)...")

@@ -7,7 +7,7 @@ stdlib urlopen buffers SSE in some configurations).
 Usage:
   ./sse_client.py "你好，我是 Vector，今天天气很好，要不要一起出去玩？"
   ./sse_client.py --no-play "..."     # parse + time only, don't play
-  ./sse_client.py --host 192.168.50.48 --port 8020 "..."
+  ./sse_client.py --host 127.0.0.1 --port 8020 "..."
 """
 
 import argparse
@@ -91,7 +91,7 @@ def stream(host: str, port: int, text: str, lang: str, play: bool) -> None:
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("text", nargs="?", default=DEFAULT_TEXT)
-    p.add_argument("--host", default="192.168.50.48")
+    p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8020)
     p.add_argument("--lang", default="中英混合")
     p.add_argument("--no-play", action="store_true", help="parse + time only, don't afplay")

@@ -1,20 +1,20 @@
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/orig_01.wav|vector|en|When the sunlight strikes raindrops in the air, they act as a prism and form a rainbow.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/orig_02.wav|vector|en|The rainbow is a division of white light into many beautiful colors.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/orig_03.wav|vector|en|These take the shape of a long round arch, with its path high above, and its two ends apparently beyond the horizon.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/orig_04.wav|vector|en|There is, according to legend, a boiling pot of gold at one end.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/A1.wav|vector|en|Throughout the centuries people have explained the rainbow in various ways.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/A2.wav|vector|en|Some have accepted it as a miracle without physical explanation.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/A3.wav|vector|en|To the Hebrews it was a token that there would be no more universal floods.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/A4.wav|vector|en|The Greeks used to imagine that it was a sign from the gods to foretell war.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/A5.wav|vector|en|The Norsemen considered the rainbow as a bridge over which the gods passed from earth to the sky.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/B1.wav|vector|en|The birch canoe slid on the smooth planks.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/B2.wav|vector|en|Glue the sheet to the dark blue background.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/B3.wav|vector|en|It's easy to tell the depth of a well.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/B4.wav|vector|en|These days a chicken leg is a rare dish.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/B5.wav|vector|en|Rice is often served in round bowls.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/C1.wav|vector|en|Hello, my name is Vector.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/C2.wav|vector|en|I'm a small home robot.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/C3.wav|vector|en|Sure, why not.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/C4.wav|vector|en|I don't know what you mean.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/C5.wav|vector|en|Have a nice day.
-/Users/wuwei/workspace/gpt-sovits/samples/dataset/C6.wav|vector|en|Goodbye!
+samples/dataset/orig_01.wav|vector|en|When the sunlight strikes raindrops in the air, they act as a prism and form a rainbow.
+samples/dataset/orig_02.wav|vector|en|The rainbow is a division of white light into many beautiful colors.
+samples/dataset/orig_03.wav|vector|en|These take the shape of a long round arch, with its path high above, and its two ends apparently beyond the horizon.
+samples/dataset/orig_04.wav|vector|en|There is, according to legend, a boiling pot of gold at one end.
+samples/dataset/A1.wav|vector|en|Throughout the centuries people have explained the rainbow in various ways.
+samples/dataset/A2.wav|vector|en|Some have accepted it as a miracle without physical explanation.
+samples/dataset/A3.wav|vector|en|To the Hebrews it was a token that there would be no more universal floods.
+samples/dataset/A4.wav|vector|en|The Greeks used to imagine that it was a sign from the gods to foretell war.
+samples/dataset/A5.wav|vector|en|The Norsemen considered the rainbow as a bridge over which the gods passed from earth to the sky.
+samples/dataset/B1.wav|vector|en|The birch canoe slid on the smooth planks.
+samples/dataset/B2.wav|vector|en|Glue the sheet to the dark blue background.
+samples/dataset/B3.wav|vector|en|It's easy to tell the depth of a well.
+samples/dataset/B4.wav|vector|en|These days a chicken leg is a rare dish.
+samples/dataset/B5.wav|vector|en|Rice is often served in round bowls.
+samples/dataset/C1.wav|vector|en|Hello, my name is Vector.
+samples/dataset/C2.wav|vector|en|I'm a small home robot.
+samples/dataset/C3.wav|vector|en|Sure, why not.
+samples/dataset/C4.wav|vector|en|I don't know what you mean.
+samples/dataset/C5.wav|vector|en|Have a nice day.
+samples/dataset/C6.wav|vector|en|Goodbye!
