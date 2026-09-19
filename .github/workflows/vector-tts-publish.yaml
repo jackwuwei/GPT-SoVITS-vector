@@ -133,3 +133,19 @@ jobs:
 
       - name: Inspect
         run: docker buildx imagetools inspect ${{ steps.image.outputs.name }}:${{ steps.meta.outputs.version }}
+
+      - name: Checkout description
+        if: github.ref == 'refs/heads/main'
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: Docker/DOCKERHUB.md
+
+      - name: Push Docker Hub description
+        if: github.ref == 'refs/heads/main'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ steps.image.outputs.name }}
+          short-description: Vector 音色的 TTS 服务：GPT-SoVITS 微调，中英混合，纯 CPU
+          readme-filepath: Docker/DOCKERHUB.md
