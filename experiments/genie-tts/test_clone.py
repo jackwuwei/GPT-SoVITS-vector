@@ -1,7 +1,7 @@
 """Zero-shot clone smoke test using Genie-TTS + Vector reference audio.
 
 Loads the predefined Chinese character "Feibi" and overrides its reference audio
-with our 7.8s Vector clip so we can hear how much of Vector's timbre transfers
+with a Vector clip from the v2 dataset so we can hear how much of Vector's timbre transfers
 through Genie-TTS's reference-audio path. Output is written to test_out.wav.
 """
 
@@ -11,11 +11,8 @@ import time
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-REF_AUDIO = _ROOT + "/samples/vector_ref_best.wav"
-REF_TEXT = (
-    "These take the shape of a long round arch, with its path high above, "
-    "and its two ends apparently beyond the horizon."
-)
+REF_AUDIO = _ROOT + "/samples/vector_sovits_dataset_v2/clips/vector_001.wav"
+REF_TEXT = "Hi there. My name is Vector. It's very nice to meet you today."
 OUT_PATH = _ROOT + "/experiments/genie-tts/test_out.wav"
 TARGET_TEXT = "你好，我是 Vector，今天天气很好，要不要一起出去玩？"
 CHARACTER = "Feibi"

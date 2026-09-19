@@ -32,7 +32,7 @@ i18n = I18nAuto()
 OUT = REPO / "output" / "sweep"
 OUT.mkdir(parents=True, exist_ok=True)
 
-REF_AUDIO = str(REPO.parent / "samples" / "vector_sovits_dataset_v2" / "clips" / "vector_001.wav")
+REF_AUDIO = str(REPO / "samples" / "vector_sovits_dataset_v2" / "clips" / "vector_001.wav")
 REF_TEXT = "Hi there. My name is Vector. It's very nice to meet you today."
 REF_LANG = "英文"
 TEXT = "你好，我是 Vector。很高兴见到你！"

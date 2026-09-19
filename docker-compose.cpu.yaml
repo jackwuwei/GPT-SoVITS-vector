@@ -21,7 +21,7 @@ services:
       - ./SoVITS_weights_v2:/app/SoVITS_weights_v2:ro
       - ./GPT_weights_v2:/app/GPT_weights_v2:ro
       - ./output:/app/output
-      - ./samples:/samples:ro            # vector_ref_best.wav lives here
+      - ./samples/vector_sovits_dataset_v2/clips:/samples:ro   # serve.py default ref: /samples/vector_001.wav
     ports:
       - "8020:8020"
     restart: unless-stopped

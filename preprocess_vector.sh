@@ -8,8 +8,8 @@ source .venv/bin/activate
 export PYTHONPATH="$PWD:$PWD/GPT_SoVITS:$PYTHONPATH"
 export PYTORCH_ENABLE_MPS_FALLBACK=1   # let MPS silently fall back to CPU for unsupported ops
 
-EXP_NAME="${EXP_NAME:-vector}"
-LIST="${LIST:-dataset/vector.list}"
+EXP_NAME="${EXP_NAME:-vectorv2}"
+LIST="${LIST:-dataset/vectorv2.list}"
 OPT_DIR="logs/${EXP_NAME}"
 BERT_DIR="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
 HUBERT_DIR="GPT_SoVITS/pretrained_models/chinese-hubert-base"

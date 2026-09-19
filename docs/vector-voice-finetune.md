@@ -2,11 +2,10 @@
 
 把 Vector 机器人的英文音色克隆出来，用于 wire-pod 中文（及多语言）TTS。Apple Silicon (M-series) 本地训练，最终生成的中文语音具有 Vector 的童声/机器人音色特征。
 
-> **实验日期**：2026-05-04
-> **总耗时**：约 90 分钟（其中训练约 50 分钟，调试约 40 分钟）
-> **结果**：✅ 成功，e30 SoVITS + e50 GPT 输出听感"像 Vector"
+> **当前模型**：v2 数据集，SoVITS e30 + GPT e30（`vectorv2_e30_s780.pth` / `vectorv2-e30.ckpt`），由 epoch sweep 逐个试听选出
+> **部署**：`serve.py`（FastAPI `POST /tts`，返回 32kHz mono WAV），通过 `docker-compose.cpu.yaml` 跑在 CPU 主机上；wire-pod 侧用 `tts_provider=gpt-sovits` 接入
 >
-> **目录说明**：实验时本仓库嵌套在 `wire-pod/gpt-sovits/` 下，现已独立为 `~/workspace/gpt-sovits`。文中 `gpt-sovits/...` 指本仓库根目录，`samples/...` 指本仓库下的 `samples/`；Genie-TTS 零样本实验在 `experiments/genie-tts/`。
+> **目录说明**：文中路径均相对本仓库根目录。Genie-TTS 零样本实验在 `experiments/genie-tts/`。
 
 ---
 
@@ -21,61 +20,44 @@ wire-pod 自带的 edge-tts 用真人女声念中文，与 Vector 原生音色�
 | edge-tts + DSP（pitch shift、ring mod、telephone bandpass）| ❌ | 神经 TTS + 滤镜永远是"加滤镜的真人"，缺机器人质感 |
 | eSpeak-NG 共振峰合成 | ❌ | 机器人感对了但中文发音生硬 |
 | Genie-TTS 零样本（带 ONNX 推理）| ❌ | 它的 reference audio 只迁移情绪/语调、不迁移音色 |
-| GPT-SoVITS 上游零样本 | ❌ | 7.8 秒英文参考对 Vector 这种"非自然"音色不够 |
-| **GPT-SoVITS Fine-tune** | ✅ | 本文档记录的方案 |
+| GPT-SoVITS 上游零样本 | ❌ | 几秒英文参考对 Vector 这种"非自然"音色不够 |
+| GPT-SoVITS Fine-tune，v1 数据（麦克风录 Vector 喇叭）| ⚠️ | 手机录音带房间噪声和喇叭失真，且合成参数用错（100/100/100），听感像普通男童声。数据已从仓库删除 |
+| **GPT-SoVITS Fine-tune，v2 数据（直接合成的干声）** | ✅ | 本文档记录的方案 |
 
 ---
 
-## 2. 数据准备
+## 2. 数据准备（v2）
 
-### 2.1 录音
+数据集在 `samples/vector_sovits_dataset_v2/`，详细说明见该目录下的 `README.md`。
 
-让 Vector 通过 wire-pod SDK 念预设的英文短句，旁边用手机录音。两段录音合并：
+### 2.1 来源
 
-- `samples/vector.m4a`（48 秒）—— Rainbow Passage 前 4 句
-- `samples/vector2.m4a`（228 秒）—— Rainbow Passage 续段 5 句 + Harvard Sentences 5 句 + Vector 原生口头禅 6 句
+不再用麦克风录机器人，而是用 Vector 同款的 **Acapela BABILE 引擎 + Bendnn 声库**直接合成干声，合成参数与 Vector 真机 `tts_config.json` 一致：**speed=80, pitch=100, shape=130**。这样得到的是没有喇叭味、没有环境噪声、但 timbre 与真机一致的训练数据。
 
-驱动脚本（让 Vector 念 16 句）：`samples/say_record_script.sh`，调用 wire-pod 的 SDK API：
+> 如果想要"喇叭味"也一致，思路是让模型先学干净的 timbre，推理后再叠真机喇叭的 IR/EQ，而不是用录音训练。
 
-```
-GET  http://escapepod.local/api-sdk/assume_behavior_control?serial=<S>&priority=high
-GET  http://escapepod.local/api-sdk/say_text?serial=<S>&text=<TEXT>
-GET  http://escapepod.local/api-sdk/release_behavior_control?serial=<S>
-```
+### 2.2 规格
 
-> wire-pod 默认监听 80 端口（不是 8080）。SDK API 在 `chipper/pkg/wirepod/sdkapp/server.go`。
-
-**注意点**：
-
-- Vector 的 `SayText` 长句会**阻塞**直到念完，使 curl 超时 10 秒 —— 实际 16 句录下来 228 秒（远长于估算的 78 秒），但语音内容完整
-- 录音设置：手机 m4a, 48kHz stereo, 134kbps AAC
-
-### 2.2 切片 + 转录
-
-48s 录音里有效语音 ~22s，新录的 228s 里有效语音 ~50s。**总计 70 秒、20 句**，刚到 GPT-SoVITS 的 1 分钟下限。
-
-切片用 `ffmpeg silencedetect`（阈值 d=1.5s/-35dB），脚本和片段时间在 `samples/segments.txt`。20 个 wav 文件输出到 `samples/dataset/`：
-
-| 段 | 内容 | 时长 |
-|---|---|---|
-| orig_01..04 | Rainbow Passage 1-4（来自 vector.m4a）| 4-8s 各 |
-| A1..A5 | Rainbow Passage 5-9 | 4-6s 各 |
-| B1..B5 | Harvard Sentences 5 句 | 2-3s 各 |
-| C1..C6 | "Hello, my name is Vector"、"Sure, why not" 等 6 句 | 1.5-3s 各 |
-
-> 切片时 C 组短句容易被静音检测器切碎，C6 出现 part1/part2 拆分（part1 是噪声，丢掉）。需要听一遍人工确认对齐。
+| 项 | 值 |
+|---|---|
+| 片段数 | 20 段（`clips/vector_001.wav` .. `vector_020.wav`）|
+| 总时长 | 115 秒（每段 5.4-9.7 秒）|
+| 格式 | 32 kHz mono PCM 16-bit |
+| 峰值 | -3 dBFS |
+| 文本 | `phrases.tsv`（英文日常句 + 绕口令式覆盖音素的句子）|
+| 全部拼接试听 | `PREVIEW_ALL.wav` |
 
 ### 2.3 训练用 list 文件
 
-GPT-SoVITS 期待的格式：`<wav_path>|<spk>|<lang>|<text>`，路径用绝对路径避免 cwd 歧义：
+GPT-SoVITS 期待的格式：`<wav_path>|<spk>|<lang>|<text>`。`dataset/vectorv2.list` 里的路径相对仓库根目录（`preprocess_vector.sh` 会先 `cd` 到仓库根）：
 
 ```
-samples/dataset/orig_01.wav|vector|en|When the sunlight strikes raindrops in the air, they act as a prism and form a rainbow.
+samples/vector_sovits_dataset_v2/clips/vector_001.wav|vector|en|Hi there. My name is Vector. It's very nice to meet you today.
 ...
-samples/dataset/C6.wav|vector|en|Goodbye!
+samples/vector_sovits_dataset_v2/clips/vector_020.wav|vector|en|...
 ```
 
-写入 `gpt-sovits/dataset/vector.list`。
+`samples/vector_sovits_dataset_v2/vector.list` 是同一份清单、路径相对数据集目录，方便把数据集单独拷走（如 Colab）。
 
 ---
 
@@ -146,23 +128,23 @@ assert torch.backends.mps.is_available()  # M-series Mac 必须 True
 
 ## 4. 预处理（3 stage）
 
-`gpt-sovits/preprocess_vector.sh`：
+`preprocess_vector.sh`（默认 `EXP_NAME=vectorv2`、`LIST=dataset/vectorv2.list`）：
 
 | Stage | 脚本 | 输出 |
 |---|---|---|
-| 1a | `prepare_datasets/1-get-text.py` | `logs/vector/2-name2text.txt`（音素序列）+ `logs/vector/3-bert/`（中文用，英文为空）|
-| 1b | `prepare_datasets/2-get-hubert-wav32k.py` | `logs/vector/4-cnhubert/*.pt`（HuBERT 特征）+ `logs/vector/5-wav32k/*.wav`（重采样到 32k）|
-| 1c | `prepare_datasets/3-get-semantic.py` | `logs/vector/6-name2semantic.tsv`（语义 token）|
+| 1a | `prepare_datasets/1-get-text.py` | `logs/vectorv2/2-name2text.txt`（音素序列）+ `logs/vectorv2/3-bert/`（中文用，英文为空）|
+| 1b | `prepare_datasets/2-get-hubert-wav32k.py` | `logs/vectorv2/4-cnhubert/*.pt`（HuBERT 特征）+ `logs/vectorv2/5-wav32k/*.wav`（重采样到 32k）|
+| 1c | `prepare_datasets/3-get-semantic.py` | `logs/vectorv2/6-name2semantic.tsv`（语义 token）|
 
 关键环境变量：
 
 ```bash
 export PYTHONPATH="$PWD:$PWD/GPT_SoVITS:$PYTHONPATH"   # text 包要在 GPT_SoVITS 下
 export PYTORCH_ENABLE_MPS_FALLBACK=1                   # MPS 不支持的算子 fallback CPU
-export inp_text=dataset/vector.list
-export inp_wav_dir=""                                   # list 用绝对路径就留空
-export exp_name=vector
-export opt_dir=logs/vector
+export inp_text=dataset/vectorv2.list
+export inp_wav_dir=""                                   # 留空：按 list 里的路径（相对仓库根）原样打开
+export exp_name=vectorv2
+export opt_dir=logs/vectorv2
 export i_part=0 all_parts=1 _CUDA_VISIBLE_DEVICES=0
 export is_half=False                                    # MPS fp16 不稳，强制 fp32
 export version=v2
@@ -183,7 +165,7 @@ export version=v2
 | `batch_size` | 4 | 20 句小数据集 + MPS 内存 |
 | `fp16_run` / `precision` | `False` / `"32"` | MPS 不要 fp16 |
 | `epochs` (SoVITS) | 30 | 最终选 e30 |
-| `epochs` (GPT) | 50 | 最终选 e50 |
+| `epochs` (GPT) | 50 | 最终选 e30 |
 | `save_every_epoch` | 5 | 每 5 个 epoch 一份 ckpt |
 | `if_save_latest` | True | 自动 resume 关键 |
 | `if_save_every_weights` | True | 推理用的轻量权重保存到 `SoVITS_weights_v2/` & `GPT_weights_v2/` |
@@ -194,7 +176,8 @@ export version=v2
 
 ```bash
 . .venv/bin/activate
-python train_vector.py
+./preprocess_vector.sh
+python train_vector.py          # EXP 默认 vectorv2
 ```
 
 `train_vector.py` 串联跑：
@@ -203,6 +186,8 @@ python train_vector.py
 2. `python -s GPT_SoVITS/s1_train.py --config_file TEMP/tmp_s1.yaml`
 
 ### 5.3 时间消耗（M-series MPS）
+
+同规模数据（20 段、每 epoch 26 batch）的实测：
 
 | 阶段 | 耗时 |
 |---|---|
@@ -265,25 +250,19 @@ import pathlib
 torch.serialization.add_safe_globals([pathlib.PosixPath])
 ```
 
-### 6.4 Vector SayText 长句阻塞 + curl 超时
-
-**症状**：录音脚本中 A 组（每句 ~7 秒）每次 curl 都超时 10 秒。
-
-**影响**：录音里 A 组每句之间多了 ~10 秒静音。**对训练无影响**（自动切片会跳过空白段），但录音整体时长翻倍。
-
-### 6.5 fastText `Cache directory not found`
+### 6.4 fastText `Cache directory not found`
 
 **症状**：第一次推理 `中英混合` 模式时挂掉。
 
 **修法**：手动 `mkdir GPT_SoVITS/pretrained_models/fast_langdetect`。
 
-### 6.6 NLTK 资源缺失
+### 6.5 NLTK 资源缺失
 
 **症状**：`Resource 'averaged_perceptron_tagger_eng' not found`。
 
 **修法**：跑一次 `nltk.download('averaged_perceptron_tagger_eng')`。
 
-### 6.7 PyPI 直连卡死
+### 6.6 PyPI 直连卡死
 
 **症状**：`pip install genie-tts` 跑了 14 分钟无任何输出，CPU 0%、网络无活动。
 
@@ -300,9 +279,9 @@ torch.serialization.add_safe_globals([pathlib.PosixPath])
 export PYTHONPATH=$PWD:$PYTHONPATH
 
 python GPT_SoVITS/inference_cli.py \
-  --gpt_model    GPT_weights_v2/vector-e50.ckpt \
-  --sovits_model SoVITS_weights_v2/vector_e30_s780.pth \
-  --ref_audio    samples/vector_ref_best.wav \
+  --gpt_model    GPT_weights_v2/vectorv2-e30.ckpt \
+  --sovits_model SoVITS_weights_v2/vectorv2_e30_s780.pth \
+  --ref_audio    samples/vector_sovits_dataset_v2/clips/vector_001.wav \
   --ref_text     ref_text.txt \
   --ref_language 英文 \
   --target_text  target_text.txt \
@@ -310,7 +289,9 @@ python GPT_SoVITS/inference_cli.py \
   --output_path  output
 ```
 
-`ref_text.txt` 内容是 `vector_ref_best.wav` 对应的英文转录；`target_text.txt` 是想合成的中文（含英文专有名词时用 `中英混合` 语种）。
+`ref_text.txt` 是 `vector_001.wav` 的英文转录；`target_text.txt` 是想合成的中文（含英文专有名词时用 `中英混合` 语种）。
+
+常驻服务用 `serve.py`，默认参考音频同为 `vector_001.wav`（容器内路径 `/samples/vector_001.wav`，由 `docker-compose.cpu.yaml` 挂载 `samples/vector_sovits_dataset_v2/clips/`）。
 
 ### 7.2 性能
 
@@ -321,64 +302,45 @@ python GPT_SoVITS/inference_cli.py \
 | 输出长度（5 秒中文）| 4-6 秒 |
 | 模型加载时间（首次） | ~3-5 秒 |
 
-接 wire-pod 时输出 32k 要重采样到 16k（沿用 edge-tts 现有的 `downsample` 流水线，把 24k→16k 改成 32k→16k）。
+接 wire-pod 时 32k 重采样到 16k（wire-pod `ttr/sovits.go` 已处理）。
 
-### 7.3 结果对比
+### 7.3 选 epoch
 
-| 输出 | 说明 |
-|---|---|
-| `samples/vector_ref_best.wav` | Vector 原声参考（8.2 秒，Rainbow Passage 第 3 句）|
-| `gpt-sovits/output/output_finetuned.wav` | e15 SoVITS + e20 GPT —— "部分像，需要再训" |
-| `gpt-sovits/output/output_e30e50.wav` | **e30 SoVITS + e50 GPT —— 听感"像 Vector"** ✅ |
+`synth_sweep.py` 用固定 seed 把各个 SoVITS × GPT epoch 组合各合成一遍，输出到 `output/sweep/`，逐个试听后选定 **SoVITS e30 + GPT e30**。`synth_compare.py` 用来对比指定的几组权重。
 
 ---
 
 ## 8. 关键产出物
 
 ```
-samples/
-├── vector.m4a                       # 原始录音 1（48s）
-├── vector2.m4a                      # 原始录音 2（228s）
-├── vector_24k_mono.wav              # 录音 1 转换
-├── vector2_24k_mono.wav             # 录音 2 转换
-├── vector_ref_best.wav              # 8.2s 最干净段（推理用 reference）
-├── say_record_script.sh             # 让 Vector 念 16 句的脚本
-├── segments.txt                     # 录音 2 的切片时间表
-└── dataset/                         # 20 个切好的训练 wav
-    ├── orig_01..04.wav
-    ├── A1..A5.wav
-    ├── B1..B5.wav
-    └── C1..C6.wav
+samples/vector_sovits_dataset_v2/
+├── README.md                        # 数据集说明
+├── clips/vector_001..020.wav        # 20 段训练音频
+├── phrases.tsv                      # 文本
+├── vector.list                      # 清单（相对数据集目录）
+└── PREVIEW_ALL.wav                  # 拼接试听
 
-gpt-sovits/
-├── dataset/vector.list              # 20 行 transcript（训练用）
-├── preprocess_vector.sh             # 3 stage 预处理 driver
-├── train_vector.py                  # SoVITS + GPT 训练 driver
-├── train_gpt_only.py                # 仅续训 GPT
-├── ref_text.txt                     # 推理参考文本
-├── target_text.txt                  # 推理目标文本
-├── logs/vector/                     # 预处理产物（特征、token）
-├── SoVITS_weights_v2/
-│   ├── vector_e5_s130.pth
-│   ├── ...
-│   └── vector_e30_s780.pth          # ⭐ 当前最佳
-├── GPT_weights_v2/
-│   ├── vector-e5.ckpt
-│   ├── ...
-│   └── vector-e50.ckpt              # ⭐ 当前最佳
-└── output/
-    ├── output_finetuned.wav         # e15/e20 测试
-    └── output_e30e50.wav            # e30/e50 测试 ✅
+dataset/vectorv2.list                # 清单（相对仓库根，训练用）
+preprocess_vector.sh                 # 3 stage 预处理 driver
+train_vector.py                      # SoVITS + GPT 训练 driver
+train_gpt_only.py                    # 仅续训 GPT
+synth_sweep.py / synth_compare.py    # epoch 选择
+serve.py                             # FastAPI /tts 服务
+Dockerfile.cpu / docker-compose.cpu.yaml
+ref_text.txt / target_text.txt       # 推理参考文本 / 目标文本
+
+# 以下不入 git（本地生成）
+logs/vectorv2/                       # 预处理产物（特征、token）
+SoVITS_weights_v2/vectorv2_e30_s780.pth   # ⭐ 当前使用
+GPT_weights_v2/vectorv2-e30.ckpt          # ⭐ 当前使用
 ```
 
 ---
 
-## 9. 接下来要做
+## 9. 后续
 
-1. **包成 HTTP 服务**：参考 `gpt-sovits/api_v2.py`，起一个常驻 FastAPI，提供 `POST /tts` 接口（输入 text + lang，返回 wav 字节）
-2. **接进 wire-pod**：在 `chipper/pkg/wirepod/ttr/` 加 `sovits.go`，仿照 `edgetts.go` 的结构调 HTTP，并把现有的 24k→16k 改成 32k→16k
-3. **`apiConfig.json` 加 TTS provider**：`knowledge.tts_provider` 增加 `"sovits"` 分支（同 `"edge-tts"` / `"openai"`）
-4. **可选优化**：
-   - 用 `inference_webui_fast.py` 路径替代 cli（更快的流式推理）
-   - 把 e30/e50 模型转 ONNX，喂回 Genie-TTS 这套 ONNX 推理流水线，绕开 PyTorch 依赖
-   - 录更多 Vector 中文语音（如果以后 Vector 固件支持）做 fine-tune V2，去掉跨语言这一步
+已完成：`serve.py` HTTP 服务、CPU Docker 部署、wire-pod `gpt-sovits` TTS provider。
+
+可选方向：
+- ONNX / OpenVINO 推理（`export_vector_onnx.py`、`run_onnx.py`、`run_ov.py`）已试过，在目标 CPU 上不比 PyTorch 快，FP16/INT8 量化有可闻的音质损失，暂不采用
+- 推理后叠加 Vector 喇叭的 IR/EQ，还原真机听感

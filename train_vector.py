@@ -4,8 +4,11 @@ Patches s2.json (SoVITS) and s1longer-v2.yaml (GPT) to run on Apple Silicon
 MPS (fp32, small batch) and invokes the official training scripts in sequence.
 
 Outputs:
-  SoVITS_weights_v2/vector_e*_s*.pth     <- SoVITS fine-tune checkpoints
-  GPT_weights_v2/vector-e*.ckpt          <- GPT fine-tune checkpoints
+  SoVITS_weights_v2/<EXP>_e*_s*.pth      <- SoVITS fine-tune checkpoints
+  GPT_weights_v2/<EXP>-e*.ckpt           <- GPT fine-tune checkpoints
+
+EXP defaults to "vectorv2" (dataset/vectorv2.list, preprocessed by
+preprocess_vector.sh into logs/vectorv2/).
 """
 
 import json
@@ -19,7 +22,7 @@ from pathlib import Path
 import yaml
 
 REPO = Path(__file__).resolve().parent
-EXP = os.environ.get("EXP", "vector")
+EXP = os.environ.get("EXP", "vectorv2")
 EXP_DIR = REPO / "logs" / EXP
 TMP = REPO / "TEMP"
 TMP.mkdir(exist_ok=True)

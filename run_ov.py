@@ -8,7 +8,7 @@ Usage (inside vector-tts container on NAS):
   python /app/output/_bench/run_ov.py \
       --t2s-dir /app/output/_bench/onnx/vector \
       --vits-dir /app/output/_bench/onnx/vector \
-      --text "..." --ref-audio /samples/vector_ref_best.wav \
+      --text "..." --ref-audio /samples/vector_001.wav \
       --out /app/output/_bench/ov.wav
 """
 
@@ -33,14 +33,11 @@ import librosa
 import openvino as ov
 from openvino import PartialShape
 
-DEFAULT_REF_AUDIO = "/samples/vector_ref_best.wav"
-DEFAULT_REF_TEXT = (
-    "These take the shape of a long round arch, with its path high above, "
-    "and its two ends apparently beyond the horizon."
-)
+DEFAULT_REF_AUDIO = "/samples/vector_001.wav"
+DEFAULT_REF_TEXT = "Hi there. My name is Vector. It's very nice to meet you today."
 DEFAULT_REF_LANG = "en"
-DEFAULT_GPT_PATH = "GPT_weights_v2/vector-e50.ckpt"
-DEFAULT_SOVITS_PATH = "SoVITS_weights_v2/vector_e30_s780.pth"
+DEFAULT_GPT_PATH = "GPT_weights_v2/vectorv2-e30.ckpt"
+DEFAULT_SOVITS_PATH = "SoVITS_weights_v2/vectorv2_e30_s780.pth"
 EOS_TOKEN = 1024
 MAX_AR_STEPS = 1500
 

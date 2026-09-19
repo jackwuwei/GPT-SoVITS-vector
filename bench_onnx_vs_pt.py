@@ -29,8 +29,8 @@ from GPT_SoVITS.onnx_export import GptSoVits, SSLModel, T2SModel, VitsModel
 from text import cleaned_text_to_sequence
 
 ONNX_DIR = REPO / "onnx" / "vector"
-SOVITS_PATH = "SoVITS_weights_v2/vector_e30_s780.pth"
-GPT_PATH = "GPT_weights_v2/vector-e50.ckpt"
+SOVITS_PATH = "SoVITS_weights_v2/vectorv2_e30_s780.pth"
+GPT_PATH = "GPT_weights_v2/vectorv2-e30.ckpt"
 VERSION = "v2"
 WARMUP = 2
 ITERS = 5

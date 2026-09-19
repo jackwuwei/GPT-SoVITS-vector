@@ -29,7 +29,7 @@ OUT = REPO / "output" / "compare"
 OUT.mkdir(parents=True, exist_ok=True)
 
 # v2 dataset reference clip + its transcript (English ref → cross-lingual synth)
-REF_AUDIO = str(REPO.parent / "samples" / "vector_sovits_dataset_v2" / "clips" / "vector_001.wav")
+REF_AUDIO = str(REPO / "samples" / "vector_sovits_dataset_v2" / "clips" / "vector_001.wav")
 REF_TEXT = "Hi there. My name is Vector. It's very nice to meet you today."
 REF_LANG = "英文"
 
@@ -43,11 +43,6 @@ MODELS = {
     "vectorv2": (
         "SoVITS_weights_v2/vectorv2_e30_s780.pth",
         "GPT_weights_v2/vectorv2-e50.ckpt",
-    ),
-    # v1 for reference (the currently-deployed voice)
-    "v1": (
-        "SoVITS_weights_v2/vector_e30_s780.pth",
-        "GPT_weights_v2/vector-e50.ckpt",
     ),
 }
 

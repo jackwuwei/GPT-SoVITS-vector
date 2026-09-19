@@ -35,14 +35,11 @@ import soundfile as sf
 import librosa
 import onnxruntime as ort
 
-DEFAULT_REF_AUDIO = str(REPO.parent / "samples" / "vector_ref_best.wav")
-DEFAULT_REF_TEXT = (
-    "These take the shape of a long round arch, with its path high above, "
-    "and its two ends apparently beyond the horizon."
-)
+DEFAULT_REF_AUDIO = str(REPO / "samples" / "vector_sovits_dataset_v2" / "clips" / "vector_001.wav")
+DEFAULT_REF_TEXT = "Hi there. My name is Vector. It's very nice to meet you today."
 DEFAULT_REF_LANG = "en"  # internal code, not 英文
-DEFAULT_GPT_PATH = "GPT_weights_v2/vector-e50.ckpt"
-DEFAULT_SOVITS_PATH = "SoVITS_weights_v2/vector_e30_s780.pth"
+DEFAULT_GPT_PATH = "GPT_weights_v2/vectorv2-e30.ckpt"
+DEFAULT_SOVITS_PATH = "SoVITS_weights_v2/vectorv2_e30_s780.pth"
 EOS_TOKEN = 1024
 MAX_AR_STEPS = 1500
 

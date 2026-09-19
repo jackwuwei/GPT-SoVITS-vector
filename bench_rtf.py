@@ -26,14 +26,14 @@ from GPT_SoVITS.inference_webui import (
     get_tts_wav,
 )
 
-GPT_PATH = os.environ.get("GPT_PATH", "GPT_weights_v2/vector-e50.ckpt")
-SOVITS_PATH = os.environ.get("SOVITS_PATH", "SoVITS_weights_v2/vector_e30_s780.pth")
-# Inside the docker image samples are bind-mounted at /samples; on the host Mac
-# they live under samples/ in this repo. Override via REF_AUDIO env var if elsewhere.
-_default_ref = "/samples/vector_ref_best.wav" if os.path.exists("/samples") else \
-    "samples/vector_ref_best.wav"
+GPT_PATH = os.environ.get("GPT_PATH", "GPT_weights_v2/vectorv2-e30.ckpt")
+SOVITS_PATH = os.environ.get("SOVITS_PATH", "SoVITS_weights_v2/vectorv2_e30_s780.pth")
+# Inside the docker image the v2 clips are bind-mounted at /samples; on the host
+# they live under samples/vector_sovits_dataset_v2/clips/. Override via REF_AUDIO.
+_default_ref = "/samples/vector_001.wav" if os.path.exists("/samples") else \
+    "samples/vector_sovits_dataset_v2/clips/vector_001.wav"
 REF_AUDIO = os.environ.get("REF_AUDIO", _default_ref)
-REF_TEXT = "These take the shape of a long round arch, with its path high above, and its two ends apparently beyond the horizon."
+REF_TEXT = "Hi there. My name is Vector. It's very nice to meet you today."
 
 # Mix of short / medium / long, with embedded English (to exercise mixed-lang path)
 PROMPTS = [
