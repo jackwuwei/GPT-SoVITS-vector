@@ -193,3 +193,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Genie-TTS zero-shot experiment: downloaded third-party models (re-downloadable)
+experiments/genie-tts/models/
+experiments/genie-tts/GenieData/
